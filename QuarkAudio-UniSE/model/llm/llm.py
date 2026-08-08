@@ -76,7 +76,9 @@ class CustomLlamaModel(nn.Module):
         self.rotary_emb = llama_model.rotary_emb
         self.norm = llama_model.norm
 
-        self._update_causal_mask = llama_model._update_causal_mask
+        # Transformers releases differ on whether this private helper exists.
+        # SDPA handles causal masking internally when it is absent.
+        self._update_causal_mask = getattr(llama_model, "_update_causal_mask", None)
         
         # 自定义输出层
         self.output_head = nn.Linear(hidden_size, self.vocab_size, bias=False)  # [hidden_size, vocab_size]
@@ -179,9 +181,16 @@ class CustomLlamaModel(nn.Module):
         if position_ids is None:
             position_ids = cache_position.unsqueeze(0)
 
-        causal_mask = self._update_causal_mask(
-            attention_mask, inputs_embeds, cache_position, past_key_values, output_attentions
-        )
+        if self._update_causal_mask is not None:
+            causal_mask = self._update_causal_mask(
+                attention_mask,
+                inputs_embeds,
+                cache_position,
+                past_key_values,
+                output_attentions,
+            )
+        else:
+            causal_mask = None
 
         hidden_states = inputs_embeds
 
@@ -404,4 +413,3 @@ if __name__=='__main__':
 
     # global_ids, semantic_ids = model.generate(input_ids=None)
     print(sum([p.numel() for p in model.parameters()]))
-

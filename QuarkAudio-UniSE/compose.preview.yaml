@@ -1,0 +1,51 @@
+name: quarkaudio-unise-preview
+
+services:
+  unise:
+    build:
+      context: .
+      dockerfile: Dockerfile.preview
+    image: quarkaudio-unise-preview:edge
+    container_name: quarkaudio-unise-preview
+    restart: unless-stopped
+    ports:
+      - "17877:7860"
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "2"
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      HF_HOME: /models/huggingface
+      UNISE_OUTPUT_DIR: /data/outputs
+      UNISE_MIN_FREE_VRAM_MIB: "7500"
+      UNISE_MAX_AUDIO_SECONDS: "120"
+      UNISE_CHUNK_SECONDS: "15"
+    volumes:
+      - /mnt/TTD-Data/model-previews/quarkaudio-unise/huggingface:/models/huggingface
+      - ./outputs:/data/outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["2"]
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  portal:
+    image: nginx:1.27-alpine
+    container_name: speech-restoration-lab-preview
+    restart: unless-stopped
+    ports:
+      - "17878:80"
+    volumes:
+      - ./portal/index.html:/usr/share/nginx/html/index.html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
