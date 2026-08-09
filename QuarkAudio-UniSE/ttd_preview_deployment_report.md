@@ -4,6 +4,8 @@
 
 - lane: `server-preview`
 - target: `ttd-edge / physical GPU2`
+- canonical_repo: `FC-TTD/unified-audio`
+- development_branch: `ttd`
 - official_source: `alibaba/unified-audio@c4004e217ddf7c514f72ea22f2d0fbf43f02ae90`
 - license: Apache-2.0
 - local_branch: `ttd`（未 commit、未 push）
